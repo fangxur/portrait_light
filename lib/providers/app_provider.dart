@@ -1,8 +1,35 @@
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import '../models/light_config.dart';
 import '../services/depth_service.dart';
 import '../services/lighting_service.dart';
+
+// 顶层数据类：传入 background isolate 的参数
+class _LightingPayload {
+  final img.Image sourceImage;
+  final DepthResult depthResult;
+  final LightingConfig config;
+  final int? maxSize;
+
+  const _LightingPayload({
+    required this.sourceImage,
+    required this.depthResult,
+    required this.config,
+    this.maxSize,
+  });
+}
+
+// 顶层函数：在 background isolate 里执行光照计算 + PNG 编码
+Future<Uint8List> _runLighting(_LightingPayload p) async {
+  final lit = await LightingService.applyLighting(
+    sourceImage: p.sourceImage,
+    depthResult: p.depthResult,
+    config: p.config,
+    maxSize: p.maxSize,
+  );
+  return Uint8List.fromList(img.encodePng(lit));
+}
 
 enum AppState { idle, loadingModel, processing, done, error }
 
@@ -106,15 +133,16 @@ class AppProvider extends ChangeNotifier {
       _setState(AppState.processing, '正在渲染光照…');
     }
 
-    final litImage = await LightingService.applyLighting(
-      sourceImage: _sourceImage!,
-      depthResult: _depthResult!,
-      config: _config,
-      maxSize: preview ? _previewSize : null,
+    // 在后台 isolate 执行光照计算 + PNG 编码，不阻塞 UI 线程
+    _litImageBytes = await compute(
+      _runLighting,
+      _LightingPayload(
+        sourceImage: _sourceImage!,
+        depthResult: _depthResult!,
+        config: _config,
+        maxSize: preview ? _previewSize : null,
+      ),
     );
-
-    // 每次完成都更新图像（不丢弃）
-    _litImageBytes = Uint8List.fromList(img.encodePng(litImage));
     _isRendering = false;
 
     // 如果拖拽期间有新请求排队，用最新参数再跑一次

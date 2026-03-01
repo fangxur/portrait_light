@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
@@ -8,6 +9,24 @@ import 'package:provider/provider.dart';
 import '../models/light_config.dart';
 import '../providers/app_provider.dart';
 import '../widgets/light_controls.dart';
+
+// 顶层函数：在 background isolate 里解码并缩放图片
+img.Image? _decodeAndResize(Uint8List bytes) {
+  final decoded = img.decodeImage(bytes);
+  if (decoded == null) return null;
+  const maxDim = 1080;
+  final larger = decoded.width > decoded.height ? decoded.width : decoded.height;
+  if (larger > maxDim) {
+    final scale = maxDim / larger;
+    return img.copyResize(
+      decoded,
+      width: (decoded.width * scale).round(),
+      height: (decoded.height * scale).round(),
+      interpolation: img.Interpolation.linear,
+    );
+  }
+  return decoded;
+}
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -389,14 +408,15 @@ class _BottomToolbar extends StatelessWidget {
       return;
     }
 
-    final decoded = img.decodeImage(bytes);
-    if (decoded == null) {
+    // 在后台 isolate 解码 + 缩放，不阻塞 UI 线程
+    final source = await compute(_decodeAndResize, bytes);
+    if (source == null) {
       if (context.mounted) _showSnack(context, '无法解码图像');
       return;
     }
 
     if (context.mounted) {
-      await context.read<AppProvider>().processImage(decoded);
+      await context.read<AppProvider>().processImage(source);
     }
   }
 
