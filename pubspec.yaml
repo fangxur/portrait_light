@@ -1,0 +1,46 @@
+name: portrait_light
+description: "2D portrait relighting app using MiDaS depth estimation"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # ONNX Runtime 推理（替代 TFLite，支持直接加载 .onnx）
+  onnxruntime: ^1.4.0
+
+  # 图像处理
+  image: ^4.2.0
+
+  # 文件选择
+  file_picker: ^8.0.0
+
+  # 权限管理
+  permission_handler: ^11.0.0
+
+  # 保存图片到相册
+  gal: ^2.3.0
+
+  # Provider 状态管理
+  provider: ^6.1.0
+
+  # 向量计算
+  vector_math: ^2.1.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/models/
+    - assets/images/
