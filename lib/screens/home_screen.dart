@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:gal/gal.dart';
 import 'package:image/image.dart' as img;
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../models/light_config.dart';
 import '../providers/app_provider.dart';
@@ -362,7 +363,7 @@ class _BottomToolbar extends StatelessWidget {
           _ToolbarButton(
             icon: Icons.photo_library_outlined,
             label: '选图',
-            onTap: isProcessing ? null : () => _pickAndProcess(context),
+            onTap: isProcessing ? null : () => _showImageSourceSheet(context),
           ),
           if (provider.hasResult)
             _ToolbarButton(
@@ -388,6 +389,59 @@ class _BottomToolbar extends StatelessWidget {
     );
   }
 
+  void _showImageSourceSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1C1C1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined, color: Colors.white),
+              title: const Text('拍照', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                _captureAndProcess(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined, color: Colors.white),
+              title: const Text('从相册选择', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                _pickAndProcess(context);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _captureAndProcess(BuildContext context) async {
+    final picker = ImagePicker();
+    final XFile? photo = await picker.pickImage(source: ImageSource.camera);
+    if (photo == null) return;
+
+    final bytes = await photo.readAsBytes();
+    await _processBytes(context, bytes);
+  }
+
   Future<void> _pickAndProcess(BuildContext context) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
@@ -408,6 +462,10 @@ class _BottomToolbar extends StatelessWidget {
       return;
     }
 
+    await _processBytes(context, bytes);
+  }
+
+  Future<void> _processBytes(BuildContext context, Uint8List bytes) async {
     // 在后台 isolate 解码 + 缩放，不阻塞 UI 线程
     final source = await compute(_decodeAndResize, bytes);
     if (source == null) {

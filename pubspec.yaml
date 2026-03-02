@@ -21,6 +21,9 @@ dependencies:
   # 文件选择
   file_picker: ^8.0.0
 
+  # 相机拍照
+  image_picker: ^1.1.0
+
   # 权限管理
   permission_handler: ^11.0.0
 

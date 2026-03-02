@@ -43,6 +43,10 @@
 	</array>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>需要访问相册以保存打光结果图片</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>需要访问相册以选择人像图片</string>
+	<key>NSCameraUsageDescription</key>
+	<string>需要使用相机拍摄人像照片</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
